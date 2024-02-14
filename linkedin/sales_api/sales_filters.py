@@ -72,3 +72,35 @@ class Industry:
 
     def __repr__(self):
         return f"(type:INDUSTRY,{self.values})"
+
+
+class CurrentCompany:
+    def __init__(self, values):
+        self.values = values
+
+    def __repr__(self):
+        return f"(type:CURRENT_COMPANY,{self.values})"
+
+
+class Function:
+    def __init__(self, values):
+        self.values = values
+
+    def __repr__(self):
+        return f"(type:FUNCTION,{self.values})"
+
+
+class CurrentTitle:
+    def __init__(self, values):
+        self.values = values
+
+    def __repr__(self):
+        return f"(type:CURRENT_TITLE,{self.values})"
+
+
+class SeniorityLevel:
+    def __init__(self, values):
+        self.values = values
+
+    def __repr__(self):
+        return f"(type:SENIORITY_LEVEL,{self.values})"

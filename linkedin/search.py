@@ -7,19 +7,20 @@ session = Session()
 
 
 def search_request(request):
-    request = requests_.build_search_instance(request)
+    search_instance = requests_.build_search_instance(request)
     while True:
         account = session.get_account()
         if account is None:
             return None
-        code, content = request.search(account["data"])
+        code, content = search_instance.search(account["data"])
         if code == 429:
             session.flag_account(account["id"], 429)
             continue
         if code != 200:
             comment = {"http_error": code, "error_content": str(content)[:1000]}
-            utils.add_comment(comment, "sales_accounts", request["id"])
-            session.flag_account(account["id"], 429)
+            utils.add_comment(comment, "sales_accounts", account["id"])
+            session.flag_account(account["id"], code)
+            print(code)
             continue
         return content
 
@@ -27,14 +28,25 @@ def search_request(request):
 def handle_search_result(result, request):
     result = json.loads(result)
     total_results = result["paging"]["total"]
-    if total_results == 0:
-        return
+    print("Paging:", total_results)
+    print("Elements:", len(result["elements"]))
+    print("Start:", request["start"])
     if total_results > config.LINKEDIN__MAX_RESULTS_PER_SEARCH and request["data_children"]:
+        print(" - Triggered children creation")
         requests_.create_child_requests(request)
     else:
-        if len(result["elements"]) == 100:
+        if len(result["elements"]) == 100 and request["start"] <= 1500:
+            print(" - Triggered next chunk creation")
             requests_.create_next_request_chunk(request)
-    requests_.save_search(result, request["type"])
+
+        # debugging start
+
+        if total_results > config.LINKEDIN__MAX_RESULTS_PER_SEARCH and not request["data_children"]:
+            print(" - Triggered overflow")
+
+        # debugging end
+
+    requests_.save_search(result, request)
 
 
 def execute_request(request):

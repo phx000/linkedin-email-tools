@@ -9,17 +9,21 @@ def get_unfinished_project():
     return data[0] if data else None
 
 
-def get_unfinished_request(project):
-    data = utils.dict_query("select * from requests where project=%s and status=0 order by id", (project["id"],))
-    return data[0] if data else None
+# def get_unfinished_request(project):
+#     data = utils.dict_query("select * from requests where project=%s and status=0 order by id", (project["id"],))
+#     return data[0] if data else None
 
 
 def flag_project_as_finished(project):
     utils.query("update projects set status=1 where id=%s", (project["id"],), commit=True)
 
 
+# def flag_request_as_requested(project):
+#     utils.query("update requests set requested=1 where id=%s", (project["id"],), commit=True)
+
+
 def register_request_result(request_id, result):
-    utils.query("update requests set status=%s where id=%s", (result, request_id,), commit=True)
+    utils.query("update requests set status=%s, finish_timestamp=now() where id=%s", (result, request_id,), commit=True)
 
 
 def create_request_record(type_, data, data_children, start, project):

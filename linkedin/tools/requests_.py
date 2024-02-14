@@ -1,6 +1,6 @@
+import utils
 from linkedin.sales_api import sales, sales_filters
-from linkedin.tools import filters
-from linkedin.tools import db
+from linkedin.tools import filters, db, cleaning
 
 
 def build_range_value(min_, max_):
@@ -42,7 +42,7 @@ def build_search_instance(request):
             filters.append(build_filter(filter_))
 
     keywords = data["keywords"] if "keywords" in data else None
-    return sales.AccountSearch(filters, keywords=keywords, start=request["start"], spell_correction_enabled=data["spell_check"])
+    return sales.Search(request["type"], filters, keywords=keywords, start=request["start"], spell_correction_enabled=data["spell_check"])
 
 
 def create_child_requests(request):
@@ -64,5 +64,26 @@ def create_next_request_chunk(request):
     db.create_request_record(request["type"], request["data"], request["data_children"], request["start"] + 100, request["project"])
 
 
-def save_search(result, request_type):
-    print("paging_total", result["paging"]["total"])
+def save_search(result, request):
+    database_name = utils.get_database_name_from_project_id(request["project"])
+    if request["type"] == False:  # meaning if the request is an Account search
+        clean_result = cleaning.clean_account_search_result(result)
+        utils.dicts_commit("insert into accounts (name, urn, employee_count_range, industry) values (%s,%s,%s,%s) on conflict do nothing",
+                           ("name", "urn", "employee_count_range", "industry"), clean_result, database=database_name)
+
+        print(f"Saving comps: {len(clean_result)}/{len(result['elements'])}")
+
+    else:
+        clean_result = cleaning.clean_lead_search_result(result)
+        for filter_ in request["data"]["filters"]:
+            if filter_["type"] == "CurrentCompany":
+                for clean in clean_result:
+                    clean["search_company_urn"] = filter_["values"][0]["value"]
+                break
+
+        print(f"Saving people: {len(clean_result)}/{len(result['elements'])}")
+
+        utils.dicts_commit(
+            "insert into leads (first_name, last_name, urn, company_urn, search_company_urn, title, geo_region, started_position_on_month, started_position_on_year) values (%s,%s,%s,%s,%s,%s,%s,%s,%s) on conflict do nothing",
+            ("first_name", "last_name", "urn", "company_urn", "search_company_urn", "title", "geo_region", "started_position_on_month", "started_position_on_year"), clean_result,
+            database=database_name)

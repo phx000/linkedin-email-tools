@@ -8,7 +8,7 @@ class Session:
         self.accounts = accounts_with_status
 
     def get_accounts_data(self):
-        records = utils.dict_query("select name,data from sales_accounts")
+        records = utils.dict_query("select * from sales_accounts")
         return records
 
     def get_account(self):
