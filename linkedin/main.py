@@ -1,6 +1,6 @@
 import utils
 from tools import db, filters
-import search, search_strategies
+import strategies
 import json
 
 
@@ -20,7 +20,7 @@ def restart_project(project):
 def push_acc_config(project):
     with open(r"C:\Users\Philip\Documents\Prometheus\junk\test_rules.json", "r", encoding="utf8") as file:
         data = json.load(file)
-    utils.query("update projects set linkedin_accounts=%s where id=%s",(json.dumps(data),project["id"],),commit=True)
+    utils.query("update projects set linkedin_accounts=%s where id=%s", (json.dumps(data), project["id"],), commit=True)
 
 
 def main():
@@ -29,9 +29,8 @@ def main():
         print("All projects are finished")
         return
 
-    # while True:
-    for i in range(100):
-        result = search_strategies.simple_search(project)
+    while True:
+        result = strategies.simple_search(project)
         if result is None:
             print("Finished this project")
             db.flag_project_as_finished(project)
@@ -60,3 +59,18 @@ from tools import requests_
 
 
 main()
+
+# reqs = utils.dict_query("select * from requests where status=0 and type=true")
+# companies = utils.dict_query("select * from accounts", database="hr")
+#
+# urn_id_dict = {el["urn"]: el["id"] for el in companies}
+# #
+# for req in reqs:
+#     filter = next(el for el in req["data"]["filters"] if el["type"] == "CurrentCompany")
+#     urn = filter["values"][0]["value"]
+#     id_ = urn_id_dict[urn]
+#
+#     filter["values"][0]["accounts_pk"] = id_
+#     utils.query("update requests set data=%s where id=%s", (json.dumps(req["data"]), req["id"]), commit=True)
+
+    # utils.query("update accounts set data=")

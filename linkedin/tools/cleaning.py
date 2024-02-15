@@ -28,7 +28,7 @@ def clean_account_search_result(result):
 def clean_lead_search_result(result):
     out = []
     for element in result["elements"]:
-        clean = {"geo_region": None, "title": None, "company_urn": None, "started_position_on_month": None, "started_position_on_year": None}
+        clean = {"geo_region": None, "title": None, "account_urn": None, "started_position_on_month": None, "started_position_on_year": None}
 
         if "firstName" in element and str(element["firstName"]):
             clean["first_name"] = str(element["firstName"])
@@ -52,7 +52,7 @@ def clean_lead_search_result(result):
             position = element["currentPositions"][0]
 
             if "companyUrn" in position:
-                clean["company_urn"] = str(position["companyUrn"]).replace("urn:li:fs_salesCompany:", "")
+                clean["account_urn"] = str(position["companyUrn"]).replace("urn:li:fs_salesCompany:", "")
 
             if "title" in position and str(position["title"]):
                 clean["title"] = str(position["title"])

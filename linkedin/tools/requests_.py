@@ -78,12 +78,12 @@ def save_search(result, request):
         for filter_ in request["data"]["filters"]:
             if filter_["type"] == "CurrentCompany":
                 for clean in clean_result:
-                    clean["search_company_urn"] = filter_["values"][0]["value"]
+                    clean["account_fk"] = filter_["values"][0]["accounts_pk"]
                 break
 
         print(f"Saving people: {len(clean_result)}/{len(result['elements'])}")
 
         utils.dicts_commit(
-            "insert into leads (first_name, last_name, urn, company_urn, search_company_urn, title, geo_region, started_position_on_month, started_position_on_year) values (%s,%s,%s,%s,%s,%s,%s,%s,%s) on conflict do nothing",
-            ("first_name", "last_name", "urn", "company_urn", "search_company_urn", "title", "geo_region", "started_position_on_month", "started_position_on_year"), clean_result,
+            "insert into leads (first_name, last_name, urn, account_urn, account_fk, title, geo_region, started_position_on_month, started_position_on_year) values (%s,%s,%s,%s,%s,%s,%s,%s,%s) on conflict do nothing",
+            ("first_name", "last_name", "urn", "account_urn", "account_fk", "title", "geo_region", "started_position_on_month", "started_position_on_year"), clean_result,
             database=database_name)

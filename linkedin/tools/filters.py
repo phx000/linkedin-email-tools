@@ -60,12 +60,13 @@ def update_initial_filters(ruleset, new_filters):
 
 def build_all_leads_requests(project):
     database = utils.get_database_name_from_project_id(project["id"])
-    not_fetched_companies = utils.dict_query("select id,urn from accounts where requested=false order by employee_count_range desc, id limit %s",(config.LINKEDIN__BUILD_LEAD_REQUESTS_AMOUNT,), database=database)
+    not_fetched_companies = utils.dict_query("select id,urn from accounts where requested=false order by employee_count_range desc, id limit %s", (config.LINKEDIN__BUILD_LEAD_REQUESTS_AMOUNT,),
+                                             database=database)
     conn = utils.connection(database)
     cursor = conn.cursor()
 
     for company in not_fetched_companies:
-        current_company_filter = {"type": "CurrentCompany", "values_type": "values_list", "values": [{"type": "id", "value": company["urn"]}]}
+        current_company_filter = {"type": "CurrentCompany", "values_type": "values_list", "values": [{"type": "id", "value": company["urn"], "accounts_pk": company["id"]}]}
         for ruleset in project["linkedin_leads"]:
             updated_ruleset = update_initial_filters(ruleset, [current_company_filter])
             ruleset_to_requests(updated_ruleset, True, project_id=project["id"])

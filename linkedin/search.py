@@ -20,7 +20,7 @@ def search_request(request):
             comment = {"http_error": code, "error_content": str(content)[:1000]}
             utils.add_comment(comment, "sales_accounts", account["id"])
             session.flag_account(account["id"], code)
-            print(code)
+            print(account["name"],code)
             continue
         return content
 
