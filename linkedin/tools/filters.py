@@ -67,7 +67,7 @@ def build_all_leads_requests(project):
 
     for company in not_fetched_companies:
         current_company_filter = {"type": "CurrentCompany", "values_type": "values_list", "values": [{"type": "id", "value": company["urn"], "accounts_pk": company["id"]}]}
-        for ruleset in project["linkedin_leads"]:
+        for ruleset in project["linkedin__leads"]:
             updated_ruleset = update_initial_filters(ruleset, [current_company_filter])
             ruleset_to_requests(updated_ruleset, True, project_id=project["id"])
         cursor.execute("update accounts set requested=true where id=%s", (company["id"],))

@@ -5,7 +5,7 @@ import json
 
 
 def start_project(project):
-    for ruleset in project["linkedin_accounts"]:
+    for ruleset in project["linkedin__accounts"]:
         filters.ruleset_to_requests(ruleset, False, project_id=project["id"])
 
 
@@ -20,7 +20,7 @@ def restart_project(project):
 def push_acc_config(project):
     with open(r"C:\Users\Philip\Documents\Prometheus\junk\test_rules.json", "r", encoding="utf8") as file:
         data = json.load(file)
-    utils.query("update projects set linkedin_accounts=%s where id=%s", (json.dumps(data), project["id"],), commit=True)
+    utils.query("update projects set linkedin__accounts=%s where id=%s", (json.dumps(data), project["id"],), commit=True)
 
 
 def main():
@@ -44,33 +44,4 @@ def main():
 
         print("")
 
-
-project = db.get_unfinished_project()
-# push_acc_config(project)
-# project = db.get_unfinished_project()
-# restart_project(project)
-# start_project(project)
-
-# req=utils.dict_query("select * from requests where status=0 limit 1")[0]
-
-from tools import requests_
-
-# requests_.create_next_request_chunk(req)
-
-
 main()
-
-# reqs = utils.dict_query("select * from requests where status=0 and type=true")
-# companies = utils.dict_query("select * from accounts", database="hr")
-#
-# urn_id_dict = {el["urn"]: el["id"] for el in companies}
-# #
-# for req in reqs:
-#     filter = next(el for el in req["data"]["filters"] if el["type"] == "CurrentCompany")
-#     urn = filter["values"][0]["value"]
-#     id_ = urn_id_dict[urn]
-#
-#     filter["values"][0]["accounts_pk"] = id_
-#     utils.query("update requests set data=%s where id=%s", (json.dumps(req["data"]), req["id"]), commit=True)
-
-    # utils.query("update accounts set data=")

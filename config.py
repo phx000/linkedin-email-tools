@@ -11,3 +11,5 @@ FORMATS__SIMPLE_SEARCH_STRATEGY_GET_ACCOUNTS_QUERY='''select id,name from accoun
                                                                   case when id in (select account_fk from leads) then 1
                                                                   else 0 end desc limit 10'''
 
+VALIDATION__MILLIONVERIFIER_API_KEY="FXKyAAHwqR7iP5NEJJw66gqId"
+
