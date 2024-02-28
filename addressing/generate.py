@@ -1,3 +1,6 @@
+from unidecode import unidecode
+
+
 def combine(f, l):
     combinations = []
     for ff in f:
@@ -20,6 +23,6 @@ def generate_addresses(first, last, format_domain):
         user = user.replace("2", l)
         user = user.replace("3", f[0])
         user = user.replace("4", l[0])
-        out.add("@".join([user, domain]))
+        out.add((unidecode(user), domain))
 
     return out

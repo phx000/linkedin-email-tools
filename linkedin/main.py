@@ -44,4 +44,8 @@ def main():
 
         print("")
 
+
 main()
+
+# project = utils.dict_query("select * from projects where name='HR'")[0]
+# start_project(project)
