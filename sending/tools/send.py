@@ -93,12 +93,12 @@ def is_ready_for_sending(message, database):
     return current_datetime > campaign_part_start_timestamp
 
 
-def send_messages(messages, database):
-    print(" - Establishing SMTP connections with sender servers")
-    mailservers = utils.dict_query("select * from mailservers", database=database)
-    create_smtp_connections(mailservers)
+def send_messages(messages, mailservers, database):
+    # print(" - Establishing SMTP connections with sender servers")
+    # mailservers = utils.dict_query("select * from mailservers", database=database)
+    # create_smtp_connections(mailservers)
     campaign_part_id_to_attachments = {}
-    print(" - Success")
+    # print(" - Success")
 
     # todo remove the enumerate
     for ind, message in enumerate(messages):
@@ -135,7 +135,7 @@ def send_messages(messages, database):
 
         valid_mailservers = mailservers.copy()
         if message["mailserver_fk"] is not None:
-            valid_mailservers = next(mailserver for mailserver in mailservers if mailserver["id"] == message["mailserver_fk"])
+            valid_mailservers = [next(mailserver for mailserver in mailservers if mailserver["id"] == message["mailserver_fk"])]
 
         for mailserver in valid_mailservers:
             print(f"     - '{mailserver['host']}'")
@@ -165,13 +165,20 @@ def send_messages(messages, database):
 
             print("       - Sending message")
 
+            all_data = utils.query(
+                f"select {','.join(message_template['find_replace'].values())} from messages join campaign_parts on messages.campaign_part_fk = campaign_parts.id join campaigns on campaign_parts.campaign_fk = campaigns.id join addresses on messages.address_fk = addresses.id join leads on addresses.lead_fk = leads.id join accounts on leads.account_fk = accounts.id where messages.id=%s limit 1",
+                (message["id"],), database=database)[0]
+
+            for key, value in zip(message_template["find_replace"].keys(), all_data):
+                message_template["find_replace"][key] = str(value)
+
             message_object = compose.build_message(message_template, sender_address, recipient_address, attachments)
             sending_result = mailserver["conn"].sendmail(sender_address, recipient_address, message_object.as_bytes())
             print("         - RESULT:", sending_result)
 
             print("       - Updating record as sent")
-            utils.query("update messages set sent=true, sent_timestamp=current_timestamp, mailserver_fk=%s where id=%s",
-                        (mailserver["id"], message["id"],), commit=True, database=database)
+            utils.query("update messages set sent=true, sent_timestamp=current_timestamp, mailserver_fk=%s, smtp_id=%s where id=%s",
+                        (mailserver["id"], message_object["Message-ID"], message["id"],), commit=True, database=database)
             print("       - Finished with this message")
             print()
             break

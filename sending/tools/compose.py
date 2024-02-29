@@ -1,6 +1,7 @@
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.encoders import encode_base64
+from email.utils import make_msgid
 import utils
 import base64
 
@@ -22,16 +23,17 @@ def build_attachments(attachment_ids, database):
 
 def build_message(template, sender_address, recipient_address, attachments):
     if template["find_replace"] is not None:
-        for pair in template["find_replace"]:
-            find_string = "{{" + pair["find"] + "}}"
-            template["subject"] = template["subject"].replace(find_string, pair["replace"])
-            template["plain"] = template["plain"].replace(find_string, pair["replace"])
-            template["html"] = template["html"].replace(find_string, pair["replace"])
+        for find,replace in template["find_replace"].items():
+            find_string = "{{" + find + "}}"
+            template["subject"] = template["subject"].replace(find_string, replace)
+            template["plain"] = template["plain"].replace(find_string, replace)
+            template["html"] = template["html"].replace(find_string, replace)
 
     message = MIMEMultipart()
     message["From"] = sender_address
     message["To"] = recipient_address
     message["Subject"] = template["subject"]
+    message["Message-ID"] = make_msgid(domain=sender_address.split("@")[1])
 
     plain = MIMEBase("text", "plain")
     plain.set_payload(template["plain"].encode())
