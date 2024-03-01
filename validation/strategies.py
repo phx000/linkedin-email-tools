@@ -3,7 +3,19 @@ import utils
 import time
 
 
-def simple_validation(project):
+def find_all_non_fetched_validation_files(project):
+    print("Looking for not fetched files")
+    database=utils.get_database_name_from_project_id(project["id"])
+    while True:
+        result = validate.fetch_all_not_fetched_validation_files(database)
+        if result is None:
+            print("  Nothing to fetch")
+            return
+        print("  Files left to fetch. Not ready yet. Sleeping 100s")
+        time.sleep(100)
+
+
+def validation_upload_all_possible(project):
     print("Getting emails to validate")
     database = utils.get_database_name_from_project_id(project["id"])
     result = validate.upload_all_non_validated_emails_for_validation(database)
@@ -13,13 +25,3 @@ def simple_validation(project):
         print("  Error uploading new emails for validation")
 
     time.sleep(5)
-
-    print("Looking for not fetched files")
-    while True:
-        result = validate.fetch_all_not_fetched_validation_files(database)
-        if result is None:
-            print("  All is fetched")
-            print("Finished")
-            return
-        print("  Files left to fetch. Not ready yet. Sleeping 300s")
-        time.sleep(100)

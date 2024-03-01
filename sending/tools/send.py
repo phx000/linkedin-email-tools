@@ -84,30 +84,39 @@ def build_recipient_address(address_id, database):
     return username + "@" + domain
 
 
-def is_ready_for_sending(message, database):
-    campaign_part_start_timestamp = utils.query("""select start_timestamp 
-                                                            from messages 
-                                                                join campaign_parts on messages.campaign_part_fk = campaign_parts.id 
-                                                            where campaign_parts.id=%s""", (message["campaign_part_fk"],), database=database)[0][0]
-    current_datetime = datetime.datetime.now()
-    return current_datetime > campaign_part_start_timestamp
+# def is_ready_for_sending(message, database):
+#     campaign_part_start_timestamp = utils.query("""select start_timestamp
+#                                                             from messages
+#                                                                 join campaign_parts on messages.campaign_part_fk = campaign_parts.id
+#                                                             where campaign_parts.id=%s""", (message["campaign_part_fk"],), database=database)[0][0]
+#     current_datetime = datetime.datetime.now()
+#     return current_datetime > campaign_part_start_timestamp
+
+
+def generate_find_replace(message, find_replace, database):
+    out = {}
+
+    all_data = utils.query(
+        f"select {','.join(find_replace.values())} from messages join addresses on messages.address_fk = addresses.id join leads on addresses.lead_fk = leads.id join accounts on leads.account_fk = accounts.id where messages.id=%s limit 1",
+        (message["id"],), database=database)[0]
+
+    for key, value in zip(find_replace.keys(), all_data):
+        out[key] = str(value)
+
+    deadline = utils.query("select deadline from campaign_parts where id=%s", (message["campaign_part_fk"],), database=database)[0][0]
+    out["deadline"] = deadline
+    return out
 
 
 def send_messages(messages, mailservers, database):
-    # print(" - Establishing SMTP connections with sender servers")
-    # mailservers = utils.dict_query("select * from mailservers", database=database)
-    # create_smtp_connections(mailservers)
     campaign_part_id_to_attachments = {}
-    # print(" - Success")
 
     # todo remove the enumerate
     for ind, message in enumerate(messages):
         print("   - Working on message number", ind)
-        if not is_ready_for_sending(message, database):
-            print("   - Message not ready to be sent")
-            continue
         print("   - Message ready to be sent")
         print("   - Building attachments")
+
         message_template = get_email_template_from_campaign_part_id(message["campaign_part_fk"], database)
         if message["campaign_part_fk"] not in campaign_part_id_to_attachments:
             print(f"     - Attachments for campaign_part {message['campaign_part_fk']} not in the dict. Creating")
@@ -165,12 +174,16 @@ def send_messages(messages, mailservers, database):
 
             print("       - Sending message")
 
-            all_data = utils.query(
-                f"select {','.join(message_template['find_replace'].values())} from messages join campaign_parts on messages.campaign_part_fk = campaign_parts.id join campaigns on campaign_parts.campaign_fk = campaigns.id join addresses on messages.address_fk = addresses.id join leads on addresses.lead_fk = leads.id join accounts on leads.account_fk = accounts.id where messages.id=%s limit 1",
-                (message["id"],), database=database)[0]
+            message_template["find_replace"] = generate_find_replace(message, message_template["find_replace"], database)
 
-            for key, value in zip(message_template["find_replace"].keys(), all_data):
-                message_template["find_replace"][key] = str(value)
+            # all_data = utils.query(
+            #     f"select {','.join(message_template['find_replace'].values())} from messages join addresses on messages.address_fk = addresses.id join leads on addresses.lead_fk = leads.id join accounts on leads.account_fk = accounts.id where messages.id=%s limit 1",
+            #     (message["id"],), database=database)[0]
+            #
+            # for key, value in zip(message_template["find_replace"].keys(), all_data):
+            #     message_template["find_replace"][key] = str(value)
+            # deadline = utils.query("select deadline from campaign_parts where id=%s", (message["campaign_part_fk"],), database=database)[0][0]
+            # message_template["deadline"] = deadline
 
             message_object = compose.build_message(message_template, sender_address, recipient_address, attachments)
             sending_result = mailserver["conn"].sendmail(sender_address, recipient_address, message_object.as_bytes())

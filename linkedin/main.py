@@ -1,7 +1,13 @@
+import sys
+sys.path.append("..")
+
 import utils
 from tools import db, filters
 import strategies
 import json
+import time
+import datetime
+import config
 
 
 def start_project(project):
@@ -24,25 +30,33 @@ def push_acc_config(project):
 
 
 def main():
-    project = db.get_unfinished_project()
-    if project is None:
-        print("All projects are finished")
-        return
-
     while True:
-        result = strategies.simple_search(project)
-        if result is None:
-            print("Finished this project")
-            db.flag_project_as_finished(project)
-            return
+        if datetime.datetime.now().hour >= config.LINKEDIN__STARTING_HOUR:
+            print("Valid time. Working")
+            project = db.get_unfinished_project()
+            if project is None:
+                print("All projects are finished")
+                return
 
-        print("Highest level return code:", result)
+            while True:
+                result = strategies.simple_search(project)
+                if result is None:
+                    print("Finished this project")
+                    db.flag_project_as_finished(project)
 
-        if result == -2:
-            print("Stopping because all accounts 429")
-            return
+                print("Highest level return code:", result)
 
-        print("")
+                if result == -2:
+                    print("Stopping because all accounts 429")
+                    print("Sleeping until next day")
+                    current_datetime = datetime.datetime.now()
+                    seconds_until_next_day = (24 - current_datetime.hour - 1) * 3600 + (60 - current_datetime.minute + 5) * 60
+                    time.sleep(seconds_until_next_day)
+
+                print("")
+        else:
+            print("Sleeping")
+            time.sleep(600)
 
 
 main()

@@ -5,7 +5,7 @@ import json
 def get_unfinished_project():
     # data = utils.dict_query("select * from projects where status=0 order by priority desc limit 1")
     # return data[0] if data else None
-    data = utils.dict_query("select * from projects where name=%s", ("HR",))
+    data = utils.dict_query("select * from projects where status=0")
     return data[0] if data else None
 
 
@@ -15,7 +15,7 @@ def get_unfinished_project():
 
 
 def flag_project_as_finished(project):
-    utils.query("update projects set status=1 where id=%s", (project["id"],), commit=True)
+    utils.query("update projects set status=1, finish_timestamp=current_timestamp where id=%s", (project["id"],), commit=True)
 
 
 # def flag_request_as_requested(project):

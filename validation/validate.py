@@ -2,13 +2,19 @@ import utils
 import requests
 import csv
 import config
+import datetime
 
 
 def upload_emails_for_validation(records, api_key, database):
     csv_header = "id,emails"
     csv_body = "\n".join([",".join([str(record["id"]), record["address"]]) for record in records])
     csv_string = csv_header + "\n" + csv_body
-    files = {'file_contents': ('file.csv', csv_string)}
+
+    current_datetime = datetime.datetime.now()
+    formatted_datetime = current_datetime.strftime('%Y-%m-%d %H:%M:%S')
+    file_name = f"{database} {formatted_datetime}.csv"
+
+    files = {'file_contents': (file_name, csv_string)}
     data = {"key": api_key}
     url = "https://bulkapi.millionverifier.com/bulkapi/v2/upload"
     response = requests.post(url, files=files, data=data)

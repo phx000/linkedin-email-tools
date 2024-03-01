@@ -1,5 +1,7 @@
 APP_DATA_DB_NAME = "postgres"
 
+LINKEDIN__STARTING_HOUR = 10
+
 LINKEDIN__MAX_RESULTS_PER_SEARCH = 1600
 
 LINKEDIN__BUILD_LEAD_REQUESTS_AMOUNT = 20
@@ -10,6 +12,8 @@ FORMATS__SIMPLE_SEARCH_STRATEGY_GET_ACCOUNTS_QUERY = '''select id,name from acco
                                                          order by employee_count_range desc nulls last,
                                                                   case when id in (select account_fk from leads) then 1
                                                                   else 0 end desc limit 10'''
+
+ADDRESSING__SECONDS_OF_SLEEP_BETWEEN_GENERATIONS = 3600*24
 
 VALIDATION__MILLIONVERIFIER_API_KEY = "FXKyAAHwqR7iP5NEJJw66gqId"
 
