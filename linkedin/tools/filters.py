@@ -60,7 +60,7 @@ def update_initial_filters(ruleset, new_filters):
 
 def build_all_leads_requests(project):
     database = utils.get_database_name_from_project_id(project["id"])
-    not_fetched_companies = utils.dict_query("select id,urn from accounts where requested=false order by employee_count_range desc, id limit %s", (config.LINKEDIN__BUILD_LEAD_REQUESTS_AMOUNT,),
+    not_fetched_companies = utils.dict_query("select id,urn from accounts where requested=false order by employee_count_range desc nulls last, id limit %s", (config.LINKEDIN__BUILD_LEAD_REQUESTS_AMOUNT,),
                                              database=database)
     conn = utils.connection(database)
     cursor = conn.cursor()

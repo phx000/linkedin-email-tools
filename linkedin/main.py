@@ -43,6 +43,7 @@ def main():
                 if result is None:
                     print("Finished this project")
                     db.flag_project_as_finished(project)
+                    return
 
                 print("Highest level return code:", result)
 

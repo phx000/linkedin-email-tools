@@ -35,7 +35,7 @@ def handle_search_result(result, request):
         print(" - Triggered children creation")
         requests_.create_child_requests(request)
     else:
-        if len(result["elements"]) == 100 and request["start"] <= 1500:
+        if len(result["elements"]) == 100 and request["start"] < config.LINKEDIN__MAX_RESULTS_PER_SEARCH-100:
             print(" - Triggered next chunk creation")
             requests_.create_next_request_chunk(request)
 
