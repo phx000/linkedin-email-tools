@@ -38,7 +38,7 @@ def add_biggest_companies(country_id, country_name, down_to_letter, project):
                     (false, %s, %s, 0, %s, 0)""", (json.dumps(filters), json.dumps([]), project["id"]), commit=True)
 
 
-project = utils.dict_query("select * from projects where name='HR'")[0]
+project = utils.dict_query("select * from projects where name='pa'")[0]
 
 data = [{"name": "Albania", "id": "102845717", "lowest_letter": "C"}, {"name": "Andorra", "id": "106296266", "lowest_letter": "B"}, {"name": "Austria", "id": "103883259", "lowest_letter": "D"},
         {"name": "Belarus", "id": "101705918", "lowest_letter": "C"}, {"name": "Belgium", "id": "100565514", "lowest_letter": "E"},

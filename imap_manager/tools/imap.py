@@ -10,6 +10,6 @@ def create_imap_connections(records):
         record["conn"] = conn
 
 
-def query_message(conn, mbox_id, query):
-    _, raw_data = conn.fetch(mbox_id, query)
-    return raw_data[0][1]
+# def query_message(conn, mbox_id, query):
+#     _, raw_data = conn.fetch(mbox_id, query)
+#     return raw_data[0][1]

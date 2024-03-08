@@ -26,18 +26,16 @@ LINKEDIN__LEAD_SEARCH_GET_REQUEST_QUERY = """select *
                                                 limit 1"""
 
 # this query needs: select accounts.id, accounts.name from ...
-FORMATS__SIMPLE_SEARCH_STRATEGY_GET_ACCOUNTS_QUERY = '''select id,name from accounts
-                                                         where id not in (select account_fk from rocketreach)
-                                                         order by employee_count_range desc nulls last,
-                                                                  case when id in (select account_fk from leads) then 1
-                                                                  else 0 end desc limit 10'''
+FORMATS__SIMPLE_SEARCH_STRATEGY_GET_ACCOUNTS_QUERY = '''select accounts.id,accounts.name from accounts left join rocketreach on accounts.id = rocketreach.account_fk
+                                                         where rocketreach.id is null
+                                                         order by accounts.employee_count_range desc nulls last limit 10'''
 
 ADDRESSING__SECONDS_OF_SLEEP_BETWEEN_GENERATIONS = 3600 * 24
 
-VALIDATION__MILLIONVERIFIER_API_KEY = "FXKyAAHwqR7iP5NEJJw66gqId"
+VALIDATION__MILLIONVERIFIER_API_KEY = "tliTTt8yeJ7A1dyfgkB1eqgxF"
 
-SENDING__NUMBER_OF_NOT_SENT_MESSAGES_FETCHED_PER_DB_QUERY = 10
+SENDING__NUMBER_OF_NOT_SENT_MESSAGES_FETCHED_PER_DB_QUERY = 100_000
 
-SENDING__DELTA_TIME_BETWEEN_MESSAGES_FOR_SAME_RECIPIENT_IP = 20
+SENDING__DELTA_TIME_BETWEEN_MESSAGES_FOR_SAME_RECIPIENT_IP = 60
 
-SENDING__MAX_MESSAGES_FOR_SAME_RECIPIENT_BY_SAME_SENDER_PER_HOUR = 3
+SENDING__MAX_MESSAGES_FOR_SAME_RECIPIENT_BY_SAME_SENDER_PER_HOUR = 5

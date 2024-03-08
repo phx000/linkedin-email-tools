@@ -21,7 +21,7 @@ def generate_addresses_from_all_leads(project):
     addresses_dicts = []
 
     for lead in all_leads_with_format:
-        clean_lead = clean.clean_first_and_last_name(lead["first_name"], lead["last_name"], project["addressing__words_to_remove"])
+        clean_lead = clean.clean_first_and_last_name(lead["first_name"], lead["last_name"])
         if clean_lead is None:
             continue
 

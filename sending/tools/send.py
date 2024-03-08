@@ -28,15 +28,17 @@ def resolve_domain_to_mx_ips(domain):
         return []
 
 
-def update_ipv4(domain_record, database):
+def insert_ipv4s(domain_record, database):
     ips = resolve_domain_to_mx_ips(domain_record["domain"])
     if not ips:
         ips = ["0"]
 
     conn = utils.connection(database=database)
     cursor = conn.cursor()
-    for ip in ips:
-        cursor.execute("insert into domain_mx_ipv4s (ipv4, domain_fk) values (%s,%s)", (ip, domain_record["id"]))
+
+    data_string = ','.join([str(t) for t in [(ip, domain_record["id"]) for ip in ips]])
+    cursor.execute("insert into domain_mx_ipv4s (ipv4, domain_fk) values %s" % data_string)
+
     conn.commit()
     conn.close()
     return None if ips == ["0"] else ips
@@ -53,16 +55,10 @@ def get_attachments_from_campaign_part_id(campaign_part_id, database):
     return compose.build_attachments(attachment_ids, database)
 
 
-def get_email_template_from_campaign_part_id(campaign_part_id, database):
-    message_template = utils.dict_query("""select *
-                                                  from email_templates
-                                                        join campaign_parts on email_templates.id = campaign_parts.email_template_fk
-                                                  where campaign_parts.id=%s""", (campaign_part_id,), database=database)[0]
-    return message_template
 
 
 def get_latest_messages_with_same_sender_server_and_same_recipient_server(mailserver_id, recipient_ips, database):
-    latest_messages = utils.dict_query("""select messages.sent_timestamp
+    latest_messages = utils.dict_query("""select distinct(messages.sent_timestamp)
                                                                 from messages
                                                                          join addresses on messages.address_fk = addresses.id
                                                                          join domains on addresses.domain_fk = domains.id
@@ -71,7 +67,7 @@ def get_latest_messages_with_same_sender_server_and_same_recipient_server(mailse
                                                                   and messages.mailserver_fk =%s
                                                                   and domain_mx_ipv4s.ipv4 in %s
                                                                   and extract(epoch from (%s - messages.sent_timestamp)) < 3600
-                                                                order by current_timestamp desc""",
+                                                                order by sent_timestamp desc""",
                                        (mailserver_id, tuple(recipient_ips), datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')), database=database)
     return latest_messages
 
@@ -84,114 +80,79 @@ def build_recipient_address(address_id, database):
     return username + "@" + domain
 
 
-# def is_ready_for_sending(message, database):
-#     campaign_part_start_timestamp = utils.query("""select start_timestamp
-#                                                             from messages
-#                                                                 join campaign_parts on messages.campaign_part_fk = campaign_parts.id
-#                                                             where campaign_parts.id=%s""", (message["campaign_part_fk"],), database=database)[0][0]
-#     current_datetime = datetime.datetime.now()
-#     return current_datetime > campaign_part_start_timestamp
-
-
-def generate_find_replace(message, find_replace, database):
-    out = {}
-
-    all_data = utils.query(
-        f"select {','.join(find_replace.values())} from messages join addresses on messages.address_fk = addresses.id join leads on addresses.lead_fk = leads.id join accounts on leads.account_fk = accounts.id where messages.id=%s limit 1",
-        (message["id"],), database=database)[0]
-
-    for key, value in zip(find_replace.keys(), all_data):
-        out[key] = str(value)
-
-    deadline = utils.query("select deadline from campaign_parts where id=%s", (message["campaign_part_fk"],), database=database)[0][0]
-    out["deadline"] = deadline
-    return out
-
-
 def send_messages(messages, mailservers, database):
-    campaign_part_id_to_attachments = {}
+    def get_template(campaign_part_id):
+        return utils.dict_query("""select *
+                                          from email_templates
+                                                join campaign_parts on email_templates.id = campaign_parts.email_template_fk
+                                          where campaign_parts.id=%s""", (campaign_part_id,), database=database)[0]
 
-    # todo remove the enumerate
-    for ind, message in enumerate(messages):
-        print("   - Working on message number", ind)
-        print("   - Message ready to be sent")
-        print("   - Building attachments")
-
-        message_template = get_email_template_from_campaign_part_id(message["campaign_part_fk"], database)
-        if message["campaign_part_fk"] not in campaign_part_id_to_attachments:
-            print(f"     - Attachments for campaign_part {message['campaign_part_fk']} not in the dict. Creating")
+    def get_attachments():
+        if message["campaign_part_fk"] not in campaign_part_id__attachments:
             attachments = get_attachments_from_campaign_part_id(message["campaign_part_fk"], database)
-            campaign_part_id_to_attachments[message["campaign_part_fk"]] = attachments
-        attachments = campaign_part_id_to_attachments[message["campaign_part_fk"]]
+            campaign_part_id__attachments[message["campaign_part_fk"]] = attachments
+        return campaign_part_id__attachments[message["campaign_part_fk"]]
 
-        print("   - Looking for IPs of the recipient mailservers")
-        domain_record = utils.dict_query("select domains.* from messages join addresses on messages.address_fk = addresses.id join domains on addresses.domain_fk = domains.id where addresses.id=%s",
+    def get_ips():
+        domain_record = utils.dict_query("""select domains.*
+                                                    from messages
+                                                             join addresses on messages.address_fk = addresses.id
+                                                             join domains on addresses.domain_fk = domains.id
+                                                    where addresses.id =%s""",
                                          (message["address_fk"],), database=database)[0]
-        ips = utils.dict_query("select ipv4 from domain_mx_ipv4s where domain_fk=%s", (domain_record["id"],), database=database)
-        if not ips:
-            print(f"     - IPs not found in the DB, making DNS resolution for domain '{domain_record['domain']}'. Results:")
-            ips = update_ipv4(domain_record, database)
+        ips = utils.query("select ipv4 from domain_mx_ipv4s where domain_fk=%s", (domain_record["id"],), database=database)
 
+        if ips:
+            return [el[0] for el in ips]
         else:
-            print("     - IPs found in the DB. Results:")
-            ips = [el["ipv4"] for el in ips]
+            return insert_ipv4s(domain_record, database)
 
-        # todo remove this loop
-        for ip in ips:
-            print(f"       - {ip}")
+    def get_find_replace_data():
+        return utils.dict_query("""select leads.first_name, accounts.name as company, campaign_parts.deadline
+                                            from messages
+                                                     join addresses on messages.address_fk = addresses.id
+                                                     join leads on addresses.lead_fk = leads.id
+                                                     join accounts on leads.account_fk = accounts.id
+                                                     join campaign_parts on messages.campaign_part_fk = campaign_parts.id
+                                            where addresses.id =%s""", (message["address_fk"],), database=database)[0]
 
-        print("   - Looping through sender mailservers")
+    campaign_part_id__attachments = {}
+
+    print(f" - {len(messages)} messages left to send")
+
+    for message in messages:
+        ips = get_ips()
 
         valid_mailservers = mailservers.copy()
         if message["mailserver_fk"] is not None:
             valid_mailservers = [next(mailserver for mailserver in mailservers if mailserver["id"] == message["mailserver_fk"])]
 
         for mailserver in valid_mailservers:
-            print(f"     - '{mailserver['host']}'")
             current_datetime = datetime.datetime.now()
-            print("       - Making latest_messages query. Results:")
             latest_messages = get_latest_messages_with_same_sender_server_and_same_recipient_server(mailserver["id"], ips, database)
 
-            # todo remove this loop
-            for mess in latest_messages:
-                print(f"         - {mess}")
-
             if len(latest_messages) >= config.SENDING__MAX_MESSAGES_FOR_SAME_RECIPIENT_BY_SAME_SENDER_PER_HOUR:
-                print("       - Overflow in number of messages/hour")
                 continue
 
             if latest_messages:
-                # timestamp_dt = datetime.datetime.strptime(latest_messages[0]["sent_timestamp"], "%Y-%m-%d %H:%M:%S")
                 delta_seconds = (current_datetime - latest_messages[0]["sent_timestamp"]).total_seconds()
                 if delta_seconds < config.SENDING__DELTA_TIME_BETWEEN_MESSAGES_FOR_SAME_RECIPIENT_IP:
-                    print("       - Too little time before last message")
                     continue
 
-            print("       - Building message")
-
+            message_template = get_template(message["campaign_part_fk"])
+            find_replace_data = get_find_replace_data()
             sender_address = mailserver["username"] + "@" + mailserver["host"]
             recipient_address = build_recipient_address(message["address_fk"], database)
+            attachments = get_attachments()
 
-            print("       - Sending message")
-
-            message_template["find_replace"] = generate_find_replace(message, message_template["find_replace"], database)
-
-            # all_data = utils.query(
-            #     f"select {','.join(message_template['find_replace'].values())} from messages join addresses on messages.address_fk = addresses.id join leads on addresses.lead_fk = leads.id join accounts on leads.account_fk = accounts.id where messages.id=%s limit 1",
-            #     (message["id"],), database=database)[0]
-            #
-            # for key, value in zip(message_template["find_replace"].keys(), all_data):
-            #     message_template["find_replace"][key] = str(value)
-            # deadline = utils.query("select deadline from campaign_parts where id=%s", (message["campaign_part_fk"],), database=database)[0][0]
-            # message_template["deadline"] = deadline
-
-            message_object = compose.build_message(message_template, sender_address, recipient_address, attachments)
+            message_object = compose.build_message(message_template, find_replace_data, sender_address, recipient_address, attachments)
             sending_result = mailserver["conn"].sendmail(sender_address, recipient_address, message_object.as_bytes())
-            print("         - RESULT:", sending_result)
 
-            print("       - Updating record as sent")
+            if sending_result != {}:
+                raise Exception("Sending result is not {}")
+
+            print(f"   - Sent message with id {message['id']} at {current_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+
             utils.query("update messages set sent=true, sent_timestamp=current_timestamp, mailserver_fk=%s, smtp_id=%s where id=%s",
                         (mailserver["id"], message_object["Message-ID"], message["id"],), commit=True, database=database)
-            print("       - Finished with this message")
-            print()
             break

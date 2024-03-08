@@ -1,15 +1,11 @@
 import utils
 from tools import imap, parse, clean
 from email.parser import BytesParser
+import time
 
 
-def simple_strategy(project):
-    print(" - Establishing IMAP connections")
+def simple_strategy(mailservers, project):
     database = utils.get_database_name_from_project_id(project["id"])
-    mailservers = utils.dict_query("select * from mailservers", database=database)
-    imap.create_imap_connections(mailservers)
-    print(" - Success")
-
     all_remaining_messages = utils.dict_query(
         "select messages.id as id,messages.smtp_id as smtp_id from messages left join message_analytics on messages.id = message_analytics.message_fk where message_analytics.message_fk is null",
         database=database)
@@ -25,8 +21,13 @@ def simple_strategy(project):
         print(f"     - Performing analysis")
         for message_id in message_ids:
             print(f"       - Message {message_id.decode()}/{len(message_ids)}")
-            message_bytes = imap.query_message(conn, message_id, "(BODY.PEEK[HEADER])")
-            message = BytesParser().parsebytes(message_bytes)
+
+            while True:
+                res, message_bytes = conn.fetch(message_id, "(BODY.PEEK[HEADER])")
+                if res == "OK":
+                    message = BytesParser().parsebytes(message_bytes[0][1])
+                    break
+                time.sleep(0.1)
 
             message_fk = None
             headers_to_search = ["In-Reply-To", "References"]

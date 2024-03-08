@@ -1,5 +1,6 @@
 import unicodedata as ud
 from unidecode import unidecode
+from addressing import words_to_remove
 
 latin_letters = {}
 
@@ -57,7 +58,7 @@ def filter_by_len(fff, lll):
     return filter_by_cell_len(f, l)
 
 
-def clean_first_and_last_name(f, l, specifics):
+def clean_first_and_last_name(f, l):
     f = f.lower()
     l = l.lower()
 
@@ -67,5 +68,13 @@ def clean_first_and_last_name(f, l, specifics):
 
     f, l = res
     f, l = remove_non_alfa(f, l)
-    ff, ll = remove_specifics(f, l, specifics)
+    ff, ll = remove_specifics(f, l, words_to_remove.words)
     return filter_by_len(ff, ll)
+
+
+def clean_first_name(f):
+    f = f.lower()
+    f, l = remove_non_latin(f, "a")
+    f, l = remove_non_alfa(f, l)
+    ff, ll = remove_specifics(f, l, words_to_remove.words)
+    return " ".join(ff)

@@ -31,4 +31,4 @@ def test_send(template_id, database):
 
 
 if __name__ == "__main__":
-    test_send(6, "hr")
+    test_send(6, "pa")

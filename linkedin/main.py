@@ -62,5 +62,5 @@ def main():
 
 main()
 
-# project = utils.dict_query("select * from projects where name='HR'")[0]
+# project = utils.dict_query("select * from projects where name='pa'")[0]
 # start_project(project)

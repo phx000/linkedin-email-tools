@@ -7,7 +7,8 @@ import datetime
 
 def upload_emails_for_validation(records, api_key, database):
     csv_header = "id,emails"
-    csv_body = "\n".join([",".join([str(record["id"]), record["address"]]) for record in records])
+    build_address = lambda x: x["username"] + "@" + x["domain"]
+    csv_body = "\n".join([",".join([str(record["id"]), build_address(record)]) for record in records])
     csv_string = csv_header + "\n" + csv_body
 
     current_datetime = datetime.datetime.now()
@@ -44,7 +45,7 @@ def upload_emails_for_validation(records, api_key, database):
 
 
 def upload_all_non_validated_emails_for_validation(database):
-    addresses = utils.dict_query("select * from addresses where validation is null", database=database)
+    addresses = utils.dict_query("select addresses.*, domains.domain from addresses join domains on addresses.domain_fk = domains.id where validation is null", database=database)
     if not addresses:
         return -2
 
@@ -114,9 +115,11 @@ def fetch_results_from_file_id(file_id, api_key):
 def fetch_all_not_fetched_validation_files(database):
     not_fetched_files = utils.dict_query("select * from validation where status=false", database=database)
     if not not_fetched_files:
+        print("Nothing to fetch")
         return
 
     for file in not_fetched_files:
+        print(f"  Working on file psql_id {file['id']} mv_id {file['mv_id']}")
         is_file_ready_to_fetch = check_validation_status_from_file_id(file["mv_id"], config.VALIDATION__MILLIONVERIFIER_API_KEY)
         if is_file_ready_to_fetch:
             result = fetch_results_from_file_id(file["mv_id"], config.VALIDATION__MILLIONVERIFIER_API_KEY)
