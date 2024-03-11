@@ -122,6 +122,7 @@ def send_messages(messages, mailservers, database):
 
     for message in messages:
         ips = get_ips()
+        message_template = get_template(message["campaign_part_fk"])
 
         valid_mailservers = mailservers.copy()
         if message["mailserver_fk"] is not None:
@@ -139,7 +140,6 @@ def send_messages(messages, mailservers, database):
                 if delta_seconds < config.SENDING__DELTA_TIME_BETWEEN_MESSAGES_FOR_SAME_RECIPIENT_IP:
                     continue
 
-            message_template = get_template(message["campaign_part_fk"])
             find_replace_data = get_find_replace_data()
             sender_address = mailserver["username"] + "@" + mailserver["host"]
             recipient_address = build_recipient_address(message["address_fk"], database)
