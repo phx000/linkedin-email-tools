@@ -7,17 +7,30 @@ import utils
 import base64
 
 
-def build_attachments(attachment_ids, database):
+# def build_attachments(attachment_ids, database):
+#     attachments = []
+#     for attachment_id in attachment_ids:
+#         record = utils.dict_query("select * from email_attachments where id=%s", (attachment_id,), database=database)[0]
+#         new_attachment = MIMEBase(record["main_type"], record["sub_type"])
+#         new_attachment.set_payload(base64.b64decode(record["payload"]))
+#         encode_base64(new_attachment)
+#         if record["content_disposition"] is not None:
+#             new_attachment.add_header("Content-Disposition", record["content_disposition"], filename=record["name"])
+#         if record["content_id"] is not None:
+#             new_attachment.add_header("Content-ID", record["content_id"])
+#         attachments.append(new_attachment)
+#     return attachments
+
+def build_attachments(attachment_records, database):
     attachments = []
-    for attachment_id in attachment_ids:
-        record = utils.dict_query("select * from email_attachments where id=%s", (attachment_id,), database=database)[0]
-        new_attachment = MIMEBase(record["main_type"], record["sub_type"])
-        new_attachment.set_payload(base64.b64decode(record["payload"]))
+    for attachment in attachment_records:
+        new_attachment = MIMEBase(attachment["main_type"], attachment["sub_type"])
+        new_attachment.set_payload(base64.b64decode(attachment["payload"]))
         encode_base64(new_attachment)
-        if record["content_disposition"] is not None:
-            new_attachment.add_header("Content-Disposition", record["content_disposition"], filename=record["name"])
-        if record["content_id"] is not None:
-            new_attachment.add_header("Content-ID", record["content_id"])
+        if attachment["content_disposition"] is not None:
+            new_attachment.add_header("Content-Disposition", attachment["content_disposition"], filename=attachment["name"])
+        if attachment["content_id"] is not None:
+            new_attachment.add_header("Content-ID", attachment["content_id"])
         attachments.append(new_attachment)
     return attachments
 

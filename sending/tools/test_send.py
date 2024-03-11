@@ -1,5 +1,5 @@
 import utils
-from sending.tools import compose, send
+from sending.tools import compose, send, networking
 
 
 def generate_find_replace(find_replace, database):
@@ -23,7 +23,7 @@ def test_send(template_id, database):
     template["find_replace"] = generate_find_replace(template["find_replace"], database)
 
     mailserver = utils.dict_query("select * from mailservers where host='bcf-info.eu' limit 1", database=database)
-    send.create_smtp_connections(mailserver)
+    networking.create_smtp_connections(mailserver)
 
     message = compose.build_message(template, "filip.esrubio@bcf-info.eu", "filip.esrubio@bcf-info.eu", attachments)
     sending_result = mailserver[0]["conn"].sendmail("filip.esrubio@bcf-info.eu", "filip.esrubio@bcf-info.eu", message.as_bytes())

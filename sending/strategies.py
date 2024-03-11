@@ -1,5 +1,5 @@
 import utils
-from tools import send
+from tools import send, networking
 import config
 import time
 import datetime
@@ -7,13 +7,37 @@ import datetime
 
 def send_not_sent_messages(database):
     def get_not_sent_messages():
-        return utils.dict_query(
-            "select messages.* from messages join campaign_parts on messages.campaign_part_fk = campaign_parts.id where sent=false and current_timestamp > campaign_parts.start_timestamp limit %s",
-            (config.SENDING__NUMBER_OF_NOT_SENT_MESSAGES_FETCHED_PER_DB_QUERY,), database=database)
+        return utils.dict_query("""  select messages.id             as messages__id,
+                                                   messages.mailserver_fk  as messages__mailserver_fk,
+                                                   addresses.id            as addresses__id,
+                                                   addresses.username      as addresses__username,
+                                                   domains.id              as domains__id,
+                                                   domains.domain          as domains__domain,
+                                                   leads.first_name        as leads__first_name,
+                                                   leads.last_name         as leads__last_name,
+                                                   accounts.name           as accounts__name,
+                                                   campaign_parts.id       as campaign_parts__id,
+                                                   campaign_parts.deadline as campaign_parts__deadline,
+                                                   email_templates.id      as email_templates__id,
+                                                   email_templates.subject as email_templates__subject,
+                                                   email_templates.plain   as email_templates__plain,
+                                                   email_templates.html    as email_templates__html
+                                            from messages
+                                                     join addresses on messages.address_fk = addresses.id
+                                                     join domains on addresses.domain_fk = domains.id
+                                                     join leads on addresses.lead_fk = leads.id
+                                                     join accounts on leads.account_fk = accounts.id
+                                                     join campaign_parts on messages.campaign_part_fk = campaign_parts.id
+                                                     join email_templates on campaign_parts.email_template_fk = email_templates.id
+                                            where messages.sent = false
+                                              and current_timestamp > campaign_parts.start_timestamp
+                                              and addresses.username || '@' || domains.domain not in (select address from unsub_addresses)
+                                              and domains.domain not in (select domain from unsub_domains) limit %s
+                                            """, (config.SENDING__NUMBER_OF_NOT_SENT_MESSAGES_FETCHED_PER_DB_QUERY,), database=database)
 
     def get_mailserver_records_with_smtp_connections():
         mailservers_ = utils.dict_query("select * from mailservers", database=database)
-        send.create_smtp_connections(mailservers_)
+        networking.create_smtp_connections(mailservers_)
         return mailservers_
 
     not_sent_messages = get_not_sent_messages()
@@ -27,7 +51,8 @@ def send_not_sent_messages(database):
         not_sent_messages = get_not_sent_messages()
         if not not_sent_messages:
             break
-    time.sleep(5)
+        time.sleep(20)
+
 
 def create_new_campaign_with_available_addresses(database):
     def get_next_week_weekday(date, weekday_index):
