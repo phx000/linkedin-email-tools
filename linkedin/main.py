@@ -50,9 +50,7 @@ def main():
                 if result == -2:
                     print("Stopping because all accounts 429")
                     print("Sleeping until next day")
-                    current_datetime = datetime.datetime.now()
-                    seconds_until_next_day = (24 - current_datetime.hour - 1) * 3600 + (60 - current_datetime.minute + 5) * 60
-                    time.sleep(seconds_until_next_day)
+                    time.sleep(3600)
 
                 print("")
         else:
